@@ -23,11 +23,14 @@ export const AuthProvider = ({
   const [user, setUser] = useState<IUser | null>(initUser);
   const connect = useChatStore((s) => s.connect);
   const disconnect = useChatStore((s) => s.disconnect);
+  const { setToken } = useChatStore();
 
   useEffect(() => {
     if (!token || !user) return;
 
-    connect(token);
+    setToken(token);
+
+    connect();
 
     return () => {
       disconnect();

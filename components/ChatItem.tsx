@@ -2,34 +2,30 @@
 
 import { ChatItem as IChatItem } from "@/types/Chats.type";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { cn, getAvatarInitial, getOtherUserName } from "@/lib/utils";
-import { useAuth } from "@/Contexts/AuthContext";
+import { cn, getAvatarInitial } from "@/lib/utils";
 import { useChatStore } from "@/store/chatStore";
 
 const ChatItem = ({ chat }: { chat: IChatItem }) => {
-  const { user } = useAuth();
   const joinChat = useChatStore((s) => s.joinChat);
-  const activeChat = useChatStore((s) => s.activeChatId);
+  const activeChat = useChatStore((s) => s.activeChat);
 
-  if (!chat || !user) return null;
+  if (!chat) return null;
 
   return (
     <div
       className={cn(
         "flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-accent",
-        activeChat === chat.id && "bg-primary/10 hover:bg-primary/10"
+        activeChat?.id === chat.id && "bg-primary/10 hover:bg-primary/10"
       )}
-      onClick={() => joinChat(chat.id)}
+      onClick={() => joinChat(chat)}
     >
       <Avatar className="size-12">
         <AvatarImage src={chat.avatar} />
-        <AvatarFallback>{getAvatarInitial(user, chat.name)}</AvatarFallback>
+        <AvatarFallback>{getAvatarInitial(chat.name)}</AvatarFallback>
       </Avatar>
 
       <div>
-        <h2 className="text-lg font-semibold line-clamp-1">
-          {getOtherUserName(user, chat.name)}
-        </h2>
+        <h2 className="text-lg font-semibold line-clamp-1">{chat.name}</h2>
         <p className="text-gray-500 line-clamp-1 text-sm">
           {chat.lastMessagePreview || "No messages yet"}
         </p>

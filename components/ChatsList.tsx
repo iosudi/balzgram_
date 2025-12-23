@@ -48,13 +48,14 @@ const addChatAvatars = async (chats: IChatItem[]) => {
     chats.map(async (chat) => {
       if (chat.isGroup) return chat;
 
-      const username = getOtherUserName(user, chat.name);
+      const username = getOtherUserName(user.userName, chat.name);
 
       const imageData = await getUserAvatar(username);
 
       return {
         ...chat,
         avatar: imageData?.url ?? null,
+        name: username,
       };
     })
   );

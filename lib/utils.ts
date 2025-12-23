@@ -6,10 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const getOtherUserName = (user: IUser, chatName: string): string => {
-  if (!user || !chatName) return chatName || "Unknown Chat";
+export const getOtherUserName = (
+  username: string,
+  chatName: string
+): string => {
+  console.log(username);
+
+  if (!username || !chatName) return chatName || "Unknown Chat";
   if (!chatName.includes("&")) return chatName;
-  const currentUserName = user.userName;
+  const currentUserName = username;
   const names = chatName
     .split("&")
     .map((name) => name.trim())
@@ -20,13 +25,16 @@ export const getOtherUserName = (user: IUser, chatName: string): string => {
   return otherName || chatName;
 };
 
-export const getAvatarInitial = (user: IUser, chatName?: string): string => {
+export const getAvatarInitial = (
+  username: string,
+  chatName?: string
+): string => {
   let displayName: string;
 
   if (chatName) {
-    displayName = getOtherUserName(user, chatName);
+    displayName = getOtherUserName(username, chatName);
   } else {
-    displayName = user.userName;
+    displayName = username;
   }
 
   return displayName?.[0]?.toUpperCase() || "U";

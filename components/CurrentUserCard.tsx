@@ -17,7 +17,7 @@ const CurrentUserCard = () => {
       <div className="flex items-center gap-2">
         <Avatar className="size-10">
           <AvatarImage src={user.avatar} />
-          <AvatarFallback>{getAvatarInitial(user)}</AvatarFallback>
+          <AvatarFallback>{getAvatarInitial(user.userName)}</AvatarFallback>
         </Avatar>
         <div className="-space-y-0.5">
           <h2 className="text-base">

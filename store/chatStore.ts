@@ -1,42 +1,73 @@
 import { create } from "zustand";
 import * as signalR from "@microsoft/signalr";
+import { ChatItem } from "@/types/chats.type";
 
-type Message = {
+export type Message = {
   id: string;
   chatId: string;
   senderId: string;
+  senderUserName: string;
   content: string;
-  createdAt: string;
+  sentAtUtc: string;
+};
+
+type MessageResponse = {
+  items: Message[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
 };
 
 type ChatState = {
   connection: signalR.HubConnection | null;
   isConnected: boolean;
+  token: string | null;
 
-  activeChatId: string | null;
-  joinedChats: Set<string>;
-  messages: Record<string, Message[]>;
+  activeChat: ChatItem | null;
+  messages: Message[];
+  currentPage: number;
+  pageSize: number;
+  totalMessages: number;
+  hasMoreMessages: boolean;
+  isLoadingMessages: boolean;
 
-  connect: (token: string) => Promise<void>;
+  setToken: (token: string) => void;
+  connect: () => Promise<void>;
   disconnect: () => Promise<void>;
-  joinChat: (chatId: string) => Promise<void>;
-  leaveChat: (chatId: string) => Promise<void>;
+  joinChat: (chat: ChatItem) => Promise<void>;
+  leaveChat: () => Promise<void>;
+  setActiveChat: (chat: ChatItem | null) => Promise<void>;
+  fetchMessageHistory: (chatId: string, page?: number) => Promise<void>;
+  loadMoreMessages: () => Promise<void>;
   sendMessage: (chatId: string, content: string) => Promise<void>;
-  setActiveChat: (chatId: string | null) => void;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
   connection: null,
   isConnected: false,
+  token: null,
 
-  activeChatId: null,
-  joinedChats: new Set(),
-  messages: {},
+  activeChat: null,
+  messages: [],
+  currentPage: 1,
+  pageSize: 20,
+  totalMessages: 0,
+  hasMoreMessages: false,
+  isLoadingMessages: false,
 
-  connect: async (token) => {
-    const currentConnection = get().connection;
+  setToken: (token: string) => {
+    set({ token });
+  },
 
-    if (currentConnection && get().isConnected) {
+  connect: async () => {
+    const { token, connection: currentConnection, isConnected } = get();
+
+    if (!token) {
+      console.error("No token available for SignalR connection");
+      throw new Error("Authentication token is required");
+    }
+
+    if (currentConnection && isConnected) {
       console.log("Already connected to SignalR");
       return;
     }
@@ -57,39 +88,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
       .configureLogging(signalR.LogLevel.Information)
       .build();
 
+    // 🔹 Message handler - add new message to the END (most recent)
     connection.on("ReceiveMessage", (message: Message) => {
       console.log("Received message:", message);
-      set((state) => ({
-        messages: {
-          ...state.messages,
-          [message.chatId]: [
-            ...(state.messages[message.chatId] || []),
-            message,
-          ],
-        },
-      }));
+
+      const activeChat = get().activeChat;
+      if (activeChat && message.chatId === activeChat.id) {
+        set((state) => ({
+          messages: [...state.messages, message],
+          totalMessages: state.totalMessages + 1,
+        }));
+      }
     });
 
-    // 🔹 Handle reconnection
     connection.onreconnecting((error) => {
       console.log("Reconnecting to SignalR...", error);
       set({ isConnected: false });
     });
 
-    // 🔹 Rejoin rooms after reconnect
-    connection.onreconnected((connectionId) => {
+    connection.onreconnected(async (connectionId) => {
       console.log("Reconnected to SignalR:", connectionId);
       set({ isConnected: true });
 
-      const joinedChats = get().joinedChats;
-      joinedChats.forEach((chatId) => {
-        connection.invoke("JoinChat", chatId).catch((err) => {
-          console.error(`Failed to rejoin chat ${chatId}:`, err);
-        });
-      });
+      const activeChat = get().activeChat;
+      if (activeChat) {
+        try {
+          await connection.invoke("JoinChat", activeChat.id);
+          console.log(`Rejoined active chat: ${activeChat.id}`);
+        } catch (err) {
+          console.error(`Failed to rejoin chat ${activeChat.id}:`, err);
+        }
+      }
     });
 
-    // 🔹 Handle disconnection
     connection.onclose((error) => {
       console.log("SignalR connection closed:", error);
       set({ isConnected: false });
@@ -118,81 +149,140 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({
           connection: null,
           isConnected: false,
-          joinedChats: new Set(),
-          activeChatId: null,
+          activeChat: null,
+          messages: [],
+          currentPage: 1,
+          totalMessages: 0,
+          hasMoreMessages: false,
         });
       }
     }
   },
 
-  joinChat: async (chatId: string) => {
-    const { connection, isConnected, joinedChats } = get();
+  joinChat: async (chat: ChatItem) => {
+    const { connection, isConnected } = get();
 
     if (!connection || !isConnected) {
       console.warn("SignalR not connected. Cannot join chat.");
-      return;
-    }
-
-    if (joinedChats.has(chatId)) {
-      // Already joined → just set active
-      console.log(`Already in chat ${chatId}, setting as active`);
-      set({ activeChatId: chatId });
-      return;
+      throw new Error("Not connected to chat server");
     }
 
     try {
-      await connection.invoke("JoinChat", chatId);
-      console.log(`Successfully joined chat: ${chatId}`);
+      await connection.invoke("JoinChat", chat.id);
+      console.log(`Successfully joined chat: ${chat.id}`);
 
-      set((state) => {
-        const newJoined = new Set(state.joinedChats);
-        newJoined.add(chatId);
-
-        return {
-          joinedChats: newJoined,
-          activeChatId: chatId,
-          messages: {
-            ...state.messages,
-            [chatId]: state.messages[chatId] ?? [],
-          },
-        };
+      set({
+        activeChat: chat,
+        messages: [],
+        currentPage: 1,
+        totalMessages: 0,
+        hasMoreMessages: false,
       });
+
+      await get().fetchMessageHistory(chat.id, 1);
     } catch (err) {
-      console.error(`Failed to join chat ${chatId}:`, err);
+      console.error(`Failed to join chat ${chat.id}:`, err);
       throw err;
     }
   },
 
-  leaveChat: async (chatId: string) => {
-    const { connection, isConnected, joinedChats } = get();
+  leaveChat: async () => {
+    const { connection, isConnected, activeChat } = get();
+
+    if (!activeChat) {
+      console.warn("No active chat to leave");
+      return;
+    }
 
     if (!connection || !isConnected) {
       console.warn("SignalR not connected. Cannot leave chat.");
       return;
     }
 
-    if (!joinedChats.has(chatId)) {
-      console.warn(`Not in chat ${chatId}, nothing to leave`);
+    try {
+      await connection.invoke("LeaveChat", activeChat.id);
+      console.log(`Successfully left chat: ${activeChat.id}`);
+
+      set({
+        activeChat: null,
+        messages: [],
+        currentPage: 1,
+        totalMessages: 0,
+        hasMoreMessages: false,
+      });
+    } catch (err) {
+      console.error(`Failed to leave chat ${activeChat.id}:`, err);
+      throw err;
+    }
+  },
+
+  fetchMessageHistory: async (chatId: string, page: number = 1) => {
+    const { token, pageSize } = get();
+
+    if (!token) {
+      console.error("No token available for fetching messages");
       return;
     }
 
+    set({ isLoadingMessages: true });
+
     try {
-      await connection.invoke("LeaveChat", chatId);
-      console.log(`Successfully left chat: ${chatId}`);
+      const response = await fetch(
+        `https://balzgram.runasp.net/api/chats/${chatId}/messages?pageNumber=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      set((state) => {
-        const newJoined = new Set(state.joinedChats);
-        newJoined.delete(chatId);
+      if (!response.ok) {
+        throw new Error("Failed to fetch message history");
+      }
 
-        return {
-          joinedChats: newJoined,
-          activeChatId:
-            state.activeChatId === chatId ? null : state.activeChatId,
-        };
-      });
+      const data: MessageResponse = await response.json();
+
+      // For first page, replace messages. For subsequent pages, prepend older messages
+      set((state) => ({
+        messages: page === 1 ? data.items : [...data.items, ...state.messages], // Prepend older messages
+        currentPage: data.pageNumber,
+        totalMessages: data.totalCount,
+        hasMoreMessages: data.pageNumber * data.pageSize < data.totalCount,
+        isLoadingMessages: false,
+      }));
+
+      console.log(`Fetched ${data.items.length} messages for chat ${chatId}`);
     } catch (err) {
-      console.error(`Failed to leave chat ${chatId}:`, err);
+      console.error(`Failed to fetch message history for chat ${chatId}:`, err);
+      set({ isLoadingMessages: false });
       throw err;
+    }
+  },
+
+  loadMoreMessages: async () => {
+    const { activeChat, currentPage, hasMoreMessages, isLoadingMessages } =
+      get();
+
+    if (!activeChat || !hasMoreMessages || isLoadingMessages) {
+      return;
+    }
+
+    await get().fetchMessageHistory(activeChat.id, currentPage + 1);
+  },
+
+  setActiveChat: async (chat: ChatItem | null) => {
+    const { activeChat } = get();
+
+    if (activeChat?.id === chat?.id) {
+      return;
+    }
+
+    if (activeChat) {
+      await get().leaveChat();
+    }
+
+    if (chat) {
+      await get().joinChat(chat);
     }
   },
 
@@ -211,9 +301,5 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error(`Failed to send message to chat ${chatId}:`, err);
       throw err;
     }
-  },
-
-  setActiveChat: (chatId: string | null) => {
-    set({ activeChatId: chatId });
   },
 }));
