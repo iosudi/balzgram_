@@ -54,3 +54,32 @@ export const getPFP = async (token: string) => {
 
   return data.url ?? null;
 };
+
+export const getUserAvatar = async (username: string) => {
+  try {
+    const token = await getToken();
+
+    if (!token) {
+      throw new Error("Missing auth token");
+    }
+
+    const res = await fetch(
+      `${process.env.API_URL}/image/profile-picture/${username}`,
+      {
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+
+    return data;
+  } catch (error) {
+    console.error(error);
+  }
+};

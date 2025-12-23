@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser, getToken } from "@/lib/auth";
 import { AuthProvider } from "@/Contexts/AuthContext";
+import { ToastProvider } from "@/components/ui/base-toast";
 
 const interSans = Inter({
   variable: "--font-inter-sans",
@@ -25,9 +26,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`${interSans.variable} font-sans antialiased`}>
-        <AuthProvider token={token} initUser={user}>
-          {children}
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider token={token} initUser={user}>
+            {children}
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

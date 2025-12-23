@@ -1,16 +1,22 @@
-import { getToken } from "@/lib/auth";
+import { getCurrentUser, getToken, getUserAvatar } from "@/lib/auth";
 import { ScrollArea } from "./ui/scroll-area";
 import { ChatItem as IChatItem } from "@/types/Chats.type";
 import ChatItem from "./ChatItem";
+import { getOtherUserName } from "@/lib/utils";
 
 const getChats = async () => {
   const token = await getToken();
+
+  if (!token) {
+    throw new Error("Missing auth token");
+  }
+
   const res = await fetch(`${process.env.API_URL}/chats`, {
     method: "GET",
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
-      cache: "no-store",
     },
   });
 
@@ -26,7 +32,32 @@ const getChats = async () => {
     }
   }
 
-  return res.json();
+  const data = await res.json();
+
+  const chats = await addChatAvatars(data);
+
+  return chats;
+};
+
+const addChatAvatars = async (chats: IChatItem[]) => {
+  const user = await getCurrentUser();
+
+  if (!user) return chats;
+
+  return Promise.all(
+    chats.map(async (chat) => {
+      if (chat.isGroup) return chat;
+
+      const username = getOtherUserName(user, chat.name);
+
+      const imageData = await getUserAvatar(username);
+
+      return {
+        ...chat,
+        avatar: imageData?.url ?? null,
+      };
+    })
+  );
 };
 
 const ChatsList = async () => {
@@ -34,7 +65,6 @@ const ChatsList = async () => {
 
   try {
     chats = await getChats();
-    console.log(chats);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error(error);

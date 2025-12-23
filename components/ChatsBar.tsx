@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/lib/auth";
 import ChatsList from "./ChatsList";
 import CurrentUserCard from "./CurrentUserCard";
 import MainHeader from "./MainHeader";

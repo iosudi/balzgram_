@@ -5,4 +5,5 @@ export type ChatItem = {
   lastMessageAtUtc: string;
   memberCount: number;
   isGroup: boolean;
+  avatar?: string;
 };
