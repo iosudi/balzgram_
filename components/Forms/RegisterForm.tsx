@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { registerRules } from "@/lib/validators/register";
 import { redirect } from "next/navigation";
+import { useAuth } from "@/Contexts/AuthContext";
 
 interface FormProps {
   className?: string;
@@ -24,6 +25,7 @@ type RegisterFormValues = {
 };
 
 const RegisterForm = ({ className }: FormProps) => {
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -51,6 +53,8 @@ const RegisterForm = ({ className }: FormProps) => {
       setServerError(result.error);
       return;
     }
+
+    setUser(result.user);
 
     redirect("/");
   };

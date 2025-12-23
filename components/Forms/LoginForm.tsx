@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { registerRules } from "@/lib/validators/register";
 import { redirect } from "next/navigation";
+import { useAuth } from "@/Contexts/AuthContext";
 
 interface FormProps {
   className?: string;
@@ -24,6 +25,7 @@ type LoginFormValues = {
 };
 
 const LoginForm = ({ className }: FormProps) => {
+  const { setUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -35,8 +37,6 @@ const LoginForm = ({ className }: FormProps) => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setServerError(null);
-
-    console.log(data);
 
     const res = await fetch("/api/auth/login", {
       method: "POST",
@@ -50,6 +50,8 @@ const LoginForm = ({ className }: FormProps) => {
       setServerError(result.error);
       return;
     }
+
+    setUser(result.user);
 
     redirect("/");
   };

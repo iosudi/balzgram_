@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { storeToken } from "@/lib/auth";
+import { getPFP, storeToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
 
     await storeToken(data.token);
 
-    return NextResponse.json({ success: true });
+    const pfp = await getPFP(data.token);
+
+    return NextResponse.json({
+      success: true,
+      user: { ...data.user, avatar: pfp },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Something went wrong" },
