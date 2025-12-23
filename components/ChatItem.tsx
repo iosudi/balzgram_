@@ -2,16 +2,25 @@
 
 import { ChatItem as IChatItem } from "@/types/Chats.type";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { getAvatarInitial, getOtherUserName } from "@/lib/utils";
+import { cn, getAvatarInitial, getOtherUserName } from "@/lib/utils";
 import { useAuth } from "@/Contexts/AuthContext";
+import { useChatStore } from "@/store/chatStore";
 
 const ChatItem = ({ chat }: { chat: IChatItem }) => {
   const { user } = useAuth();
+  const joinChat = useChatStore((s) => s.joinChat);
+  const activeChat = useChatStore((s) => s.activeChatId);
 
   if (!chat || !user) return null;
 
   return (
-    <div className="flex items-center gap-3 p-4 rounded-xl">
+    <div
+      className={cn(
+        "flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-accent",
+        activeChat === chat.id && "bg-primary/10 hover:bg-primary/10"
+      )}
+      onClick={() => joinChat(chat.id)}
+    >
       <Avatar className="size-12">
         <AvatarImage src={chat.avatar} />
         <AvatarFallback>{getAvatarInitial(user, chat.name)}</AvatarFallback>

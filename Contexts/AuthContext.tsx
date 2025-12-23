@@ -1,6 +1,7 @@
 "use client";
+import { useChatStore } from "@/store/chatStore";
 import { IUser } from "@/types/user.type";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextType = {
   user: IUser | null;
@@ -20,6 +21,18 @@ export const AuthProvider = ({
   token: string | null;
 }) => {
   const [user, setUser] = useState<IUser | null>(initUser);
+  const connect = useChatStore((s) => s.connect);
+  const disconnect = useChatStore((s) => s.disconnect);
+
+  useEffect(() => {
+    if (!token || !user) return;
+
+    connect(token);
+
+    return () => {
+      disconnect();
+    };
+  }, [token, user, connect, disconnect]);
 
   return (
     <AuthContext.Provider

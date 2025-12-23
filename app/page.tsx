@@ -8,7 +8,7 @@ import {
 export default function Home() {
   return (
     <ResizablePanelGroup className="min-h-screen max-w-screen">
-      <ResizablePanel defaultSize={25} minSize={400}>
+      <ResizablePanel defaultSize={20} minSize={350}>
         <ChatsBar />
       </ResizablePanel>
       <ResizableHandle className="hover:bg-primary focus:bg-primary transition-colors" />

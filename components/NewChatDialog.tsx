@@ -35,6 +35,7 @@ const NewChatDialog = () => {
     startTransition(async () => {
       try {
         await startPrivateChat(query);
+        setOpen(false);
         setQuery("");
       } catch (error) {
         let message = "Something went wrong";
