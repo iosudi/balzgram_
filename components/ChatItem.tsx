@@ -1,9 +1,9 @@
 "use client";
 
-import { ChatItem as IChatItem } from "@/types/Chats.type";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { cn, getAvatarInitial } from "@/lib/utils";
 import { useChatStore } from "@/store/chatStore";
+import { ChatItem as IChatItem } from "@/types/chats.type";
 
 const ChatItem = ({ chat }: { chat: IChatItem }) => {
   const joinChat = useChatStore((s) => s.joinChat);

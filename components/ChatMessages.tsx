@@ -57,7 +57,7 @@ const ChatMessages = () => {
 
   if (messages.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
+      <div className="flex h-full items-center justify-center text-muted-foreground grow">
         No messages yet. Start the conversation!
       </div>
     );

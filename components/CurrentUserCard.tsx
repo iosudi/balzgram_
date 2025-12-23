@@ -13,7 +13,7 @@ const CurrentUserCard = () => {
   if (!user) return null;
 
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-4 h-12">
       <div className="flex items-center gap-2">
         <Avatar className="size-10">
           <AvatarImage src={user.avatar} />

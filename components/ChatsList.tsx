@@ -1,6 +1,6 @@
 import { getCurrentUser, getToken, getUserAvatar } from "@/lib/auth";
 import { ScrollArea } from "./ui/scroll-area";
-import { ChatItem as IChatItem } from "@/types/Chats.type";
+import { ChatItem as IChatItem } from "@/types/chats.type";
 import ChatItem from "./ChatItem";
 import { getOtherUserName } from "@/lib/utils";
 
