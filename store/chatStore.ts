@@ -81,7 +81,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://balzgram.runasp.net/hubs/chat", {
+      .withUrl("/hubs/chat", {
         accessTokenFactory: () => token,
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000])
@@ -228,12 +228,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     try {
       const response = await fetch(
-        `https://balzgram.runasp.net/api/chats/${chatId}/messages?pageNumber=${page}&pageSize=${pageSize}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        `/api/chats/${chatId}/messages?pageNumber=${page}&pageSize=${pageSize}`
       );
 
       if (!response.ok) {
@@ -242,18 +237,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       const data: MessageResponse = await response.json();
 
-      // For first page, replace messages. For subsequent pages, prepend older messages
       set((state) => ({
-        messages: page === 1 ? data.items : [...data.items, ...state.messages], // Prepend older messages
+        messages: page === 1 ? data.items : [...data.items, ...state.messages], // prepend older
         currentPage: data.pageNumber,
         totalMessages: data.totalCount,
         hasMoreMessages: data.pageNumber * data.pageSize < data.totalCount,
         isLoadingMessages: false,
       }));
-
-      console.log(`Fetched ${data.items.length} messages for chat ${chatId}`);
     } catch (err) {
-      console.error(`Failed to fetch message history for chat ${chatId}:`, err);
+      console.error("Failed to fetch message history:", err);
       set({ isLoadingMessages: false });
       throw err;
     }

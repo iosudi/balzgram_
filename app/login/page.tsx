@@ -6,7 +6,7 @@ const page = () => {
   return (
     <main className="flex flex-col items-center justify-center h-screen w-screen px-4">
       <Icons.balz_logo_name className="h-8 w-auto" />
-      <div className="sm:min-w-md  bg-white dark:bg-neutral-950 shadow-xl border rounded-2xl px-6 py-4 mt-4">
+      <div className="sm:min-w-md  bg-white dark:bg-neutral-950 shadow-xl border rounded-2xl sm:px-6 sm:py-4 p-2 mt-4">
         <LoginForm />
         <p className="text-center mt-3 text-sm text-neutral-800 dark:text-neutral-400">
           Don&apos;t have an account yet?{" "}
