@@ -8,7 +8,7 @@ import { Eye, EyeClosed, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { registerRules } from "@/lib/validators/register";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useAuth } from "@/Contexts/AuthContext";
 
 interface FormProps {
@@ -26,6 +26,7 @@ type LoginFormValues = {
 
 const LoginForm = ({ className }: FormProps) => {
   const { setUser } = useAuth();
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -53,7 +54,8 @@ const LoginForm = ({ className }: FormProps) => {
 
     setUser(result.user);
 
-    redirect("/");
+    router.refresh();
+    router.push("/");
   };
 
   return (
